@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Asymmetric Pauson-Khand Database</title>
+<style>
+:root{
+  --paper:#F1F4F3; --panel:#FFFFFF; --ink:#141B21; --ink2:#53646E;
+  --rule:#CBD5D8; --rule2:#E3EAEB; --accent:#175E63; --accent-soft:#E2EFEE;
+  --rust:#9E4712; --plum:#75204A; --focus:#B8860B;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(23,94,99,.3)}
+a:hover{border-bottom-color:var(--accent)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:2px solid var(--focus);outline-offset:2px}
+h1,h2,h3{font-family:var(--serif);font-weight:600;line-height:1.2;margin:0}
+h1{font-size:30px;letter-spacing:-.01em}
+h2{font-size:21px;margin-bottom:.4rem}
+h3{font-size:16px}
+.mono{font-family:var(--mono);font-size:12.5px;word-break:break-all}
+.muted{color:var(--ink2)}
+.wrap{max-width:1360px;margin:0 auto;padding:0 22px}
+
+/* header */
+header.top{border-bottom:1px solid var(--rule);background:var(--panel)}
+.top .wrap{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;padding-top:18px;padding-bottom:0}
+.brand h1 small{display:block;font-family:var(--sans);font-size:12px;font-weight:400;
+  color:var(--ink2);letter-spacing:.02em;margin-top:4px}
+nav.tabs{display:flex;gap:2px;margin-left:auto;align-self:flex-end}
+nav.tabs a{border:1px solid var(--rule);border-bottom:none;background:var(--paper);
+  padding:7px 14px;font-size:13.5px;color:var(--ink2);border-radius:4px 4px 0 0;position:relative;top:1px}
+nav.tabs a.on{background:var(--panel);color:var(--ink);font-weight:600;border-bottom:1px solid var(--panel)}
+main{padding:20px 0 60px}
+
+/* generic blocks */
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:5px}
+.pad{padding:16px 18px}
+.row{display:flex;gap:18px;align-items:flex-start}
+.grow{flex:1;min-width:0}
+label.fld{display:block;font-size:12px;color:var(--ink2);margin-bottom:3px}
+select,input[type=text],input[type=search],textarea{font-family:var(--sans);font-size:13.5px;
+  padding:6px 8px;border:1px solid var(--rule);border-radius:4px;background:var(--panel);color:var(--ink);width:100%}
+input.mono,textarea.mono{font-family:var(--mono)}
+button{font-family:var(--sans);font-size:13.5px;padding:7px 14px;border:1px solid var(--accent);
+  background:var(--accent);color:#fff;border-radius:4px;cursor:pointer}
+button.ghost{background:var(--panel);color:var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+.pill{display:inline-block;font-size:11.5px;padding:2px 7px;border-radius:9px;
+  border:1px solid var(--rule);background:var(--paper);color:var(--ink2);white-space:nowrap}
+.pill.warn{border-color:var(--plum);color:var(--plum);background:#FBF2F6}
+.pill.ok{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.stats{display:flex;gap:26px;flex-wrap:wrap;margin:0 0 14px}
+.stats div b{font-family:var(--serif);font-size:24px;font-weight:600;display:block;line-height:1.1}
+.stats div span{font-size:11.5px;color:var(--ink2)}
+
+/* map */
+.maplayout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:18px}
+@media(max-width:900px){.maplayout{grid-template-columns:1fr}}
+.controls{position:sticky;top:12px}
+.controls .grp{border-top:1px solid var(--rule2);padding:11px 0}
+.controls .grp:first-child{border-top:none;padding-top:0}
+.chk{display:flex;align-items:flex-start;gap:7px;font-size:13px;margin:3px 0;cursor:pointer}
+.chk input{margin:3px 0 0}
+.scrolly{max-height:168px;overflow:auto;padding-right:4px}
+#plotbox{position:relative;background:var(--panel);border:1px solid var(--rule);border-radius:5px;overflow:hidden}
+#plot{display:block;width:100%;touch-action:none;cursor:crosshair}
+.pt{stroke:#fff;stroke-width:.8;cursor:pointer}
+.pt.dim{opacity:.13}
+.pt.sel{stroke:var(--focus);stroke-width:2.5}
+.axis line,.axis path{stroke:var(--rule);fill:none}
+.axis text{fill:var(--ink2);font-size:10px;font-family:var(--sans)}
+.gridline{stroke:var(--rule2)}
+.plotnote{position:absolute;left:12px;bottom:10px;font-size:11px;color:var(--ink2);
+  background:rgba(255,255,255,.82);padding:2px 6px;border-radius:3px}
+.zoomctl{position:absolute;right:10px;top:10px;display:flex;gap:4px}
+.zoomctl button{padding:3px 9px;font-size:12px;background:rgba(255,255,255,.92);color:var(--ink2);border-color:var(--rule)}
+#hovercard{position:fixed;z-index:40;width:310px;background:var(--panel);border:1px solid var(--ink);
+  border-radius:5px;box-shadow:0 8px 22px rgba(20,27,33,.16);padding:11px 12px;pointer-events:none;display:none}
+#hovercard.pinned{pointer-events:auto}
+#hovercard .struct{height:132px;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--rule2);border-radius:4px;background:#fff;margin-bottom:8px}
+#hovercard dl{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;margin:0;font-size:12.5px}
+#hovercard dt{color:var(--ink2)}
+#hovercard dd{margin:0}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:12px;color:var(--ink2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.ramp{height:9px;width:110px;border-radius:5px;display:inline-block;vertical-align:-1px;margin:0 6px}
+
+/* tables */
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--rule2);vertical-align:top}
+th{font-size:11.5px;color:var(--ink2);font-weight:600;background:var(--paper);position:sticky;top:0;z-index:2;
+  border-bottom:1px solid var(--rule)}
+tbody tr:hover{background:#F7FAFA}
+td.num{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.tablewrap{max-height:70vh;overflow:auto;border:1px solid var(--rule);border-radius:5px;background:var(--panel)}
+
+/* detail page */
+.detail{display:grid;grid-template-columns:330px minmax(0,1fr);gap:22px}
+@media(max-width:820px){.detail{grid-template-columns:1fr}}
+.structbox{border:1px solid var(--rule);border-radius:5px;background:#fff;padding:8px;
+  min-height:190px;display:flex;align-items:center;justify-content:center}
+.structcap{font-size:11.5px;color:var(--ink2);margin:5px 0 16px}
+dl.kv{display:grid;grid-template-columns:200px minmax(0,1fr);gap:0;margin:0;font-size:13.5px}
+dl.kv dt{color:var(--ink2);padding:5px 0;border-top:1px solid var(--rule2)}
+dl.kv dd{margin:0;padding:5px 0;border-top:1px solid var(--rule2);word-break:break-word}
+dl.kv dt.empty,dl.kv dd.empty{color:#9BAAB2}
+.crumb{font-size:12.5px;color:var(--ink2);margin-bottom:10px}
+.hitlist{display:grid;gap:10px}
+.hit{display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px;align-items:start;
+  border:1px solid var(--rule);border-radius:5px;background:var(--panel);padding:10px}
+.hit .struct{height:120px;border:1px solid var(--rule2);border-radius:4px;background:#fff;
+  display:flex;align-items:center;justify-content:center}
+.simbar{height:6px;background:var(--rule2);border-radius:3px;overflow:hidden;margin:4px 0 6px;max-width:240px}
+.simbar i{display:block;height:100%;background:var(--accent)}
+.fallback{font-family:var(--mono);font-size:11px;color:var(--ink2);text-align:center;padding:6px;word-break:break-all}
+.notice{border-left:3px solid var(--rust);background:#FDF5F0;padding:9px 12px;font-size:13px;margin:12px 0}
+.notice.info{border-left-color:var(--accent);background:var(--accent-soft)}
+footer{border-top:1px solid var(--rule);color:var(--ink2);font-size:12px;padding:16px 0 30px}
+@media (prefers-reduced-motion: no-preference){
+  .pt.sel{animation:ring .9s ease-out 2}
+  @keyframes ring{0%{stroke-width:2.5}50%{stroke-width:6}100%{stroke-width:2.5}}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <h1>The Asymmetric Pauson&#8211;Khand Database
+        <small id="subtitle"></small>
+      </h1>
+    </div>
+    <nav class="tabs" id="tabs"></nav>
+  </div>
+</header>
+<main class="wrap" id="view"></main>
+<div id="hovercard" aria-live="polite"></div>
+<footer class="wrap" id="foot"></footer>
+
+<script id="apkr-data" type="application/json">"__APKR_DATA__"</script>
+<script>
+/* ============================ CHEM: BEGIN ============================
+   A small SMILES reader used for fingerprints, similarity and formulas.
+   It runs entirely in the browser: the query you type and the database
+   entries are fingerprinted by the same code, so matches are consistent.
+   It is not a chemistry toolkit - no aromaticity perception, no CIP,
+   and stereochemistry is ignored when comparing structures.
+*/
+var CHEM = (function(){
+  var MASS={H:1.008,B:10.81,C:12.011,N:14.007,O:15.999,F:18.998,Si:28.085,P:30.974,
+    S:32.06,Cl:35.45,Br:79.904,I:126.904,Se:78.971,Na:22.99,K:39.098,Li:6.94,
+    Zn:65.38,Ag:107.868,Rh:102.906,Ir:192.217,Co:58.933,Pd:106.42,Ti:47.867,
+    Mo:95.95,W:183.84,Fe:55.845,Cu:63.546,Al:26.982};
+  var VALENCE={B:[3],C:[4],N:[3,5],O:[2],F:[1],Si:[4],P:[3,5],S:[2,4,6],Cl:[1],
+    Br:[1],I:[1],Se:[2,4,6]};
+  var ORGANIC=['Cl','Br','C','N','O','P','S','F','I','B','c','n','o','p','s','b'];
+  var BRACKET=/^\[(\d+)?([A-Za-z][a-z]?|\*)(@{1,2}(?:TH[12]|AL[12]|SP[123]|TB\d{1,2}|OH\d{1,2})?)?(H\d?)?((?:\+{1,3}|-{1,3}|\+\d|-\d))?(?::\d+)?\]/;
+
+  function parse(smi){
+    var atoms=[],bonds=[],stack=[],ring={},prev=null,pend=null,i=0;
+    function add(a,b,o){bonds.push([a,b,o,false]);
+      atoms[a].nbrs.push([b,o]);atoms[b].nbrs.push([a,o]);
+      atoms[a].bs+=o;atoms[b].bs+=o;}
+    function mk(sym,arom){return {sym:sym,arom:arom,chg:0,hExp:null,chiral:false,
+      nbrs:[],bs:0,ring:false};}
+    while(i<smi.length){
+      var ch=smi[i];
+      if(ch==='['){
+        var m=BRACKET.exec(smi.slice(i));
+        if(!m) throw new Error('bad bracket atom at '+i);
+        var sym=m[2],arom=/^[a-z]/.test(sym)&&sym!=='Cl'&&sym!=='Br';
+        var a=mk(arom?sym.toUpperCase():sym,arom);
+        if(m[5]){var c=m[5];a.chg=(c[0]==='+'?1:-1)*(/\d/.test(c.slice(1))?parseInt(c.slice(1),10):c.length);}
+        a.hExp=m[4]===undefined?0:(m[4]==='H'?1:parseInt(m[4].slice(1),10));
+        a.chiral=!!m[3];
+        atoms.push(a);
+        if(prev!==null) add(prev,atoms.length-1,pend||1);
+        prev=atoms.length-1;pend=null;i+=m[0].length;continue;
+      }
+      var hit=null;
+      for(var k=0;k<ORGANIC.length;k++){if(smi.startsWith(ORGANIC[k],i)){hit=ORGANIC[k];break;}}
+      if(hit){
+        var ar=(hit.length===1&&hit===hit.toLowerCase());
+        var at=mk(ar?hit.toUpperCase():hit,ar);
+        atoms.push(at);
+        if(prev!==null) add(prev,atoms.length-1,pend||((ar&&atoms[prev].arom)?1.5:1));
+        prev=atoms.length-1;pend=null;i+=hit.length;continue;
+      }
+      if('-=#$:/\\'.indexOf(ch)>=0){pend={'-':1,'=':2,'#':3,'$':4,':':1.5,'/':1,'\\':1}[ch];i++;continue;}
+      if(ch==='('){stack.push(prev);i++;continue;}
+      if(ch===')'){prev=stack.pop();i++;continue;}
+      if(ch==='%'||/[0-9]/.test(ch)){
+        var lab,adv;
+        if(ch==='%'){lab=smi.substr(i+1,2);adv=3;}else{lab=ch;adv=1;}
+        if(prev===null) throw new Error('ring closure with no atom');
+        if(ring[lab]!==undefined){
+          var o=pend||ring[lab][1]||((atoms[prev].arom&&atoms[ring[lab][0]].arom)?1.5:1);
+          add(ring[lab][0],prev,o);delete ring[lab];
+        } else ring[lab]=[prev,pend];
+        pend=null;i+=adv;continue;
+      }
+      if(ch==='.'){prev=null;pend=null;i++;continue;}
+      if(ch==='*'||ch==='~'){i++;continue;}
+      throw new Error('unexpected character "'+ch+'" at position '+i);
+    }
+    for(var key in ring) throw new Error('unclosed ring bond '+key);
+    markRings(atoms,bonds);
+    return {atoms:atoms,bonds:bonds};
+  }
+
+  function markRings(atoms,bonds){
+    var n=atoms.length,adj=[],i;
+    for(i=0;i<n;i++) adj.push([]);
+    bonds.forEach(function(b,bi){adj[b[0]].push([b[1],bi]);adj[b[1]].push([b[0],bi]);});
+    var disc=new Array(n).fill(0),low=new Array(n).fill(0),seen=new Array(n).fill(false),
+        t=1,bridges={};
+    for(var root=0;root<n;root++){
+      if(seen[root])continue;
+      seen[root]=true;disc[root]=low[root]=t++;
+      var st=[[root,-1,0]];
+      while(st.length){
+        var top=st[st.length-1],v=top[0],pb=top[1],adv=false;
+        while(top[2]<adj[v].length){
+          var e=adj[v][top[2]++],w=e[0],bi=e[1];
+          if(bi===pb)continue;
+          if(!seen[w]){seen[w]=true;disc[w]=low[w]=t++;st.push([w,bi,0]);adv=true;break;}
+          if(disc[w]<low[v]) low[v]=disc[w];
+        }
+        if(!adv){
+          st.pop();
+          if(st.length){
+            var u=st[st.length-1][0];
+            if(low[v]<low[u]) low[u]=low[v];
+            if(low[v]>disc[u]) bridges[pb]=1;
+          }
+        }
+      }
+    }
+    bonds.forEach(function(b,bi){
+      if(!bridges[bi]){b[3]=true;atoms[b[0]].ring=true;atoms[b[1]].ring=true;}
+    });
+  }
+
+  function implicitH(a){
+    if(a.hExp!==null) return a.hExp;
+    var vs=VALENCE[a.sym];
+    if(!vs) return 0;
+    var need=a.bs;
+    if(a.arom) need=Math.max(need,(a.sym==='C'||a.sym==='N')?3:2);
+    var target=null;
+    for(var i=0;i<vs.length;i++){if(vs[i]+a.chg>=need-1e-6){target=vs[i]+a.chg;break;}}
+    if(target===null) target=vs[vs.length-1]+a.chg;
+    return Math.max(0,Math.round(target-need));
+  }
+
+  function formula(mol){
+    var c={},nh=0;
+    mol.atoms.forEach(function(a){c[a.sym]=(c[a.sym]||0)+1;nh+=implicitH(a);});
+    if(nh) c.H=(c.H||0)+nh;
+    var order=['C','H','N','O','S','Si','P','B','F','Cl','Br','I','Se'],out='',seen={};
+    order.forEach(function(s){if(c[s]){out+=s+(c[s]>1?c[s]:'');seen[s]=1;}});
+    Object.keys(c).sort().forEach(function(s){if(!seen[s]&&c[s])out+=s+(c[s]>1?c[s]:'');});
+    return out;
+  }
+
+  function mw(mol){
+    var m=0;
+    mol.atoms.forEach(function(a){m+=(MASS[a.sym]||0)+implicitH(a)*MASS.H;});
+    return m;
+  }
+
+  function h32(str){ // FNV-1a
+    var h=0x811c9dc5;
+    for(var i=0;i<str.length;i++){h^=str.charCodeAt(i);h=(h*0x01000193)>>>0;}
+    return h>>>0;
+  }
+
+  /* circular (ECFP-like) fingerprint: hashed atom environments to radius 2 */
+  function fingerprint(mol,radius,nbits){
+    radius=radius===undefined?2:radius;nbits=nbits||4096;
+    var atoms=mol.atoms,n=atoms.length,bits={},cur=[],i;
+    for(i=0;i<n;i++){
+      var a=atoms[i];
+      cur.push(h32([a.sym,a.nbrs.length,implicitH(a),a.chg,a.arom?1:0,a.ring?1:0].join('|')));
+    }
+    for(i=0;i<n;i++) bits[cur[i]%nbits]=1;
+    for(var r=1;r<=radius;r++){
+      var next=[];
+      for(i=0;i<n;i++){
+        var env=atoms[i].nbrs.map(function(e){return e[1]+':'+cur[e[0]];}).sort();
+        next.push(h32(r+'|'+cur[i]+'|'+env.join(',')));
+      }
+      cur=next;
+      for(i=0;i<n;i++) bits[cur[i]%nbits]=1;
+    }
+    return Object.keys(bits).map(Number).sort(function(a,b){return a-b;});
+  }
+
+  function tanimoto(a,b){
+    var i=0,j=0,inter=0;
+    while(i<a.length&&j<b.length){
+      if(a[i]===b[j]){inter++;i++;j++;}
+      else if(a[i]<b[j]) i++;
+      else j++;
+    }
+    var uni=a.length+b.length-inter;
+    return uni?inter/uni:0;
+  }
+
+  function describe(smi){
+    var mol=parse(smi);
+    return {mol:mol,formula:formula(mol),mw:mw(mol),
+            heavy:mol.atoms.length,fp:fingerprint(mol)};
+  }
+
+  return {parse:parse,formula:formula,mw:mw,fingerprint:fingerprint,
+          tanimoto:tanimoto,describe:describe,implicitH:implicitH};
+})();
+/* ============================= CHEM: END ============================= */
+
+var DATA = JSON.parse(document.getElementById('apkr-data').textContent);
+var M = DATA.meta, COLS = DATA.columns, ROWS = DATA.rows, DER = DATA.derived;
+var SUBS = DATA.substrates, LIGS = DATA.ligands, PAPERS = DATA.papers;
+var C = {};                                   // column name -> index
+COLS.forEach(function(c,i){C[c]=i;});
+
+/* --------------------------------------------------------- depiction ------ */
+var DEPICT = {ready:false, failed:false, cache:{}, pending:[]};
+
+function loadDepiction(){
+  var urls=['smiles-drawer.min.js',                                  // local copy, if you keep one
+            'https://unpkg.com/smiles-drawer/dist/smiles-drawer.min.js',
+            'https://cdn.jsdelivr.net/npm/smiles-drawer/dist/smiles-drawer.min.js',
+            'https://cdn.jsdelivr.net/npm/smiles-drawer@2.0.3/dist/smiles-drawer.min.js'];
+  var i=0;
+  (function next(){
+    if(i>=urls.length){DEPICT.failed=true;flushPending();return;}
+    var s=document.createElement('script');
+    s.src=urls[i++];
+    s.onload=function(){
+      if(window.SmiDrawer||window.SmilesDrawer){DEPICT.ready=true;flushPending();}
+      else next();
+    };
+    s.onerror=next;
+    document.head.appendChild(s);
+  })();
+}
+function flushPending(){
+  var q=DEPICT.pending;DEPICT.pending=[];
+  q.forEach(function(job){depict(job[0],job[1],job[2]);});
+}
+function depict(el,smiles,caption){
+  if(!el) return;
+  if(!smiles){el.innerHTML='<div class="fallback">no structure recorded</div>';return;}
+  if(DEPICT.cache[smiles]){el.innerHTML=DEPICT.cache[smiles];return;}
+  if(DEPICT.failed){el.innerHTML=fallbackStruct(smiles);return;}
+  if(!DEPICT.ready){
+    el.innerHTML='<div class="fallback">drawing&hellip;</div>';
+    DEPICT.pending.push([el,smiles,caption]);
+    return;
+  }
+  try{
+    var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('width','100%');svg.setAttribute('height','100%');
+    svg.style.maxHeight='100%';
+    el.innerHTML='';el.appendChild(svg);
+    var drawer = DEPICT.drawer || (DEPICT.drawer = window.SmiDrawer
+        ? new window.SmiDrawer({padding:4,bondThickness:1.1,terminalCarbons:false},{})
+        : null);
+    if(drawer && drawer.draw){
+      drawer.draw(smiles, svg, 'light');
+      DEPICT.cache[smiles]=el.innerHTML;
+      return;
+    }
+    // older API: SmilesDrawer.parse + SvgDrawer
+    var SD=window.SmilesDrawer;
+    if(SD && SD.parse && SD.SvgDrawer){
+      SD.parse(smiles,function(tree){
+        new SD.SvgDrawer({}).draw(tree,svg,'light',false);
+        DEPICT.cache[smiles]=el.innerHTML;
+      },function(){el.innerHTML=fallbackStruct(smiles);});
+      return;
+    }
+    el.innerHTML=fallbackStruct(smiles);
+  }catch(e){
+    el.innerHTML=fallbackStruct(smiles);
+  }
+}
+function fallbackStruct(smiles){
+  var f='';
+  try{f=CHEM.formula(CHEM.parse(smiles));}catch(e){}
+  return '<div class="fallback">'+(f?'<b>'+f+'</b><br>':'')+esc(smiles)+'</div>';
+}
+
+/* ------------------------------------------------------------- helpers ---- */
+function esc(s){return String(s===null||s===undefined?'':s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function cell(rid,name){var i=C[name];return i===undefined?'':ROWS[rid][i];}
+function paperOf(rid){var p=DER[rid].paper;return p>=0?PAPERS[p]:null;}
+function subOf(rid){var s=DER[rid].sub;return s>=0?SUBS[s]:null;}
+function ligOf(rid){var l=DER[rid].lig;return l>=0?LIGS[l]:null;}
+function ligName(rid){return cell(rid,'ligand_preferred_name')||cell(rid,'Ligand name')||'not stated';}
+function refOf(rid){
+  var t=cell(rid,'Figure/Table'),e=cell(rid,'Entry');
+  return [t,e].filter(function(x){return x&&x!=='-';}).join(', ')||'unlabelled';
+}
+function tempOf(rid){var t=DER[rid].temp;return t===null||t===undefined?null:t;}
+function fmtTemp(rid){var t=tempOf(rid);return t===null?'not parsed':(t+' \u00B0C');}
+function num(v){if(v===null||v===undefined||v==='')return null;var m=/-?\d+(\.\d+)?/.exec(String(v));return m?parseFloat(m[0]):null;}
+function href(path){return '#'+path;}
+function go(path){location.hash=path;}
+function uniq(a){return a.filter(function(v,i){return a.indexOf(v)===i;});}
+
+function coordsOf(s){return s?(MAP.embed==='tsne'?s.tsne:s.pc):null;}
+function clusterLabel(s){
+  if(!s||s.cluster===null||s.cluster===undefined) return 'no coordinates';
+  return s.cluster<0?'unclustered (HDBSCAN noise)':'cluster '+s.cluster;
+}
+function clusterColor(c){
+  if(c===null||c===undefined) return '#E1E6E8';
+  return c<0?'#B9C4C8':catColor(c);
+}
+function clusterCount(c){
+  return SUBS.filter(function(s){return s.cluster===c;}).length;
+}
+
+/* colour scales ----------------------------------------------------------- */
+var CAT_COLORS=['#175E63','#9E4712','#3C5A8A','#75204A','#4E7A34','#8A6A16','#5B4B8A',
+  '#1F7A6B','#A7462F','#2F6E8F','#6E3B6E','#3E6B4E','#7A5C2E','#44567A','#8C3B52','#2E6A55'];
+function catColor(i){return CAT_COLORS[((i%CAT_COLORS.length)+CAT_COLORS.length)%CAT_COLORS.length];}
+function lerp(a,b,t){return a+(b-a)*t;}
+function hex(r,g,b){return '#'+[r,g,b].map(function(v){
+  var s=Math.max(0,Math.min(255,Math.round(v))).toString(16);return s.length<2?'0'+s:s;}).join('');}
+function seqScale(t){ // 0..1 -> pale grey -> teal -> deep indigo
+  var stops=[[216,222,224],[90,160,166],[18,58,94]];
+  if(t<=0)return hex.apply(null,stops[0]);
+  if(t>=1)return hex.apply(null,stops[2]);
+  var i=t<0.5?0:1,u=t<0.5?t/0.5:(t-0.5)/0.5;
+  return hex(lerp(stops[i][0],stops[i+1][0],u),lerp(stops[i][1],stops[i+1][1],u),
+             lerp(stops[i][2],stops[i+1][2],u));
+}
+function warmScale(t){ // 0..1 -> grey -> rust (used for temperature)
+  var stops=[[214,221,223],[190,120,60],[120,40,10]];
+  if(t<=0)return hex.apply(null,stops[0]);
+  if(t>=1)return hex.apply(null,stops[2]);
+  var i=t<0.5?0:1,u=t<0.5?t/0.5:(t-0.5)/0.5;
+  return hex(lerp(stops[i][0],stops[i+1][0],u),lerp(stops[i][1],stops[i+1][1],u),
+             lerp(stops[i][2],stops[i+1][2],u));
+}
+
+/* ------------------------------------------------- browser-side chemistry - */
+var SUBFP=[], LIGFP=[], CHEMFAIL=[];
+function buildFingerprints(){
+  SUBS.forEach(function(s){
+    try{var d=CHEM.describe(s.smiles);SUBFP.push(d.fp);s.jsformula=d.formula;}
+    catch(e){SUBFP.push(null);CHEMFAIL.push(s.smiles);}
+  });
+  LIGS.forEach(function(l){
+    try{var d=CHEM.describe(l.smiles);LIGFP.push(d.fp);l.jsformula=d.formula;}
+    catch(e){LIGFP.push(null);CHEMFAIL.push(l.smiles);}
+  });
+}
+
+/* =========================================================== THE MAP ===== */
+var MAP={
+  colorBy:'cluster', embed:'tsne', mode:'reaction', sizeBy:'yield',
+  papers:{}, ligands:{}, solvents:{}, clusters:{}, hideRepeats:false,
+  eeMin:0, yieldMin:0, tempAny:true,
+  zoom:1, tx:0, ty:0, focus:null, pinned:null, built:false,
+  ligOrder:[], solvOrder:[]
+};
+function mapPapers(){return PAPERS.map(function(p,i){return i;});}
+function activeRows(){
+  var out=[];
+  for(var rid=0;rid<ROWS.length;rid++){
+    var d=DER[rid];
+    if(d.sub<0||!coordsOf(SUBS[d.sub])) continue;
+    if(MAP.clusters[SUBS[d.sub].cluster]===false) continue;
+    if(MAP.hideRepeats&&d.dup!==null&&d.dup!==undefined&&!MAP.dupKeep[d.dup+':'+rid]) continue;
+    if(MAP.papers[d.paper]===false) continue;
+    var lname=ligName(rid);
+    if(MAP.ligands[lname]===false) continue;
+    var solv=cell(rid,'Solvent')||'not stated';
+    if(MAP.solvents[solv]===false) continue;
+    var ee=d.ee, y=d.yield;
+    if(MAP.eeMin>0&&!(ee!==null&&ee>=MAP.eeMin)) continue;
+    if(MAP.yieldMin>0&&!(y!==null&&y>=MAP.yieldMin)) continue;
+    out.push(rid);
+  }
+  return out;
+}
+/* keep the first row of each repeat group when repeats are hidden */
+MAP.dupKeep={};
+(function(){
+  var firstOf={};
+  for(var rid=0;rid<DER.length;rid++){
+    var g=DER[rid].dup;
+    if(g===null||g===undefined) continue;
+    if(firstOf[g]===undefined){firstOf[g]=rid;MAP.dupKeep[g+':'+rid]=true;}
+  }
+})();
+
+function jitter(i,n,scale){
+  if(n<=1) return [0,0];
+  var ga=2.39996323, r=(scale||0.055)*Math.sqrt(i+1), a=i*ga;
+  return [r*Math.cos(a), r*Math.sin(a)];
+}
+function axisNames(){
+  if(MAP.embed==='tsne') return ['t-SNE 1','t-SNE 2'];
+  var e=M.space.pc12_explained;
+  return e?['PC1 &#183; '+Math.round(e[0]*100)+'% of fingerprint variance',
+            'PC2 &#183; '+Math.round(e[1]*100)+'%']
+         :['PC1','PC2'];
+}
+
+function pointColor(rid){
+  var d=DER[rid];
+  if(MAP.colorBy==='cluster') return clusterColor(SUBS[d.sub].cluster);
+  if(MAP.colorBy==='paper') return catColor(d.paper);
+  if(MAP.colorBy==='ligand'){
+    var n=ligName(rid);
+    return catColor(MAP.ligOrder.indexOf(n));
+  }
+  if(MAP.colorBy==='solvent'){
+    var s2=cell(rid,'Solvent')||'not stated';
+    return catColor(MAP.solvOrder.indexOf(s2));
+  }
+  if(MAP.colorBy==='ee') return d.ee===null?'#E1E6E8':seqScale(Math.min(1,d.ee/100));
+  if(MAP.colorBy==='yield') return d.yield===null?'#E1E6E8':seqScale(Math.min(1,d.yield/100));
+  if(MAP.colorBy==='temp'){
+    var t=d.temp;
+    return t===null?'#E1E6E8':warmScale(Math.min(1,Math.max(0,(t+20)/150)));
+  }
+  return '#175E63';
+}
+function pointRadius(rid){
+  if(MAP.mode==='substrate'){
+    var n=SUBS[DER[rid].sub].n_rows;
+    return Math.min(13,4+Math.sqrt(n)*1.5);
+  }
+  if(MAP.sizeBy==='yield'){
+    var y=DER[rid].yield;
+    return y===null?3.4:3.4+Math.sqrt(Math.max(0,y))/2.6;
+  }
+  if(MAP.sizeBy==='ee'){
+    var e=DER[rid].ee;
+    return e===null?3.4:3.4+Math.sqrt(Math.max(0,e))/2.6;
+  }
+  return 4.6;
+}
+
+function drawPlot(){
+  var box=document.getElementById('plotbox');
+  if(!box) return;
+  var W=box.clientWidth||900, H=Math.max(420,Math.min(660,Math.round(W*0.62)));
+  var pad={l:52,r:16,t:16,b:44};
+  var pcs=SUBS.filter(function(s){return coordsOf(s);});
+  var xs=pcs.map(function(s){return coordsOf(s)[0];}),
+      ys=pcs.map(function(s){return coordsOf(s)[1];});
+  var mx=Math.max.apply(null,xs)-Math.min.apply(null,xs),
+      my=Math.max.apply(null,ys)-Math.min.apply(null,ys);
+  var padx=Math.max(mx,my)*0.05||0.4, pady=padx;
+  var x0=Math.min.apply(null,xs)-padx, x1=Math.max.apply(null,xs)+padx;
+  var y0=Math.min.apply(null,ys)-pady, y1=Math.max.apply(null,ys)+pady;
+  var jscale=Math.max(mx,my)*0.012||0.05;
+  var sx=function(v){return pad.l+(v-x0)/(x1-x0)*(W-pad.l-pad.r);};
+  var sy=function(v){return H-pad.b-(v-y0)/(y1-y0)*(H-pad.t-pad.b);};
+
+  var rows=activeRows();
+  var perSub={};
+  rows.forEach(function(rid){var s=DER[rid].sub;(perSub[s]=perSub[s]||[]).push(rid);});
+
+  var svg=['<svg id="plot" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="PCA map of substrate chemical space">'];
+  svg.push('<g class="axis">');
+  var i,gx,gy;
+  for(i=0;i<=6;i++){
+    gx=pad.l+i*(W-pad.l-pad.r)/6;
+    svg.push('<line class="gridline" x1="'+gx.toFixed(1)+'" y1="'+pad.t+'" x2="'+gx.toFixed(1)+'" y2="'+(H-pad.b)+'"/>');
+    var vx=(x0+i*(x1-x0)/6);
+    svg.push('<text x="'+gx.toFixed(1)+'" y="'+(H-pad.b+15)+'" text-anchor="middle">'+vx.toFixed(1)+'</text>');
+  }
+  for(i=0;i<=5;i++){
+    gy=pad.t+i*(H-pad.t-pad.b)/5;
+    svg.push('<line class="gridline" x1="'+pad.l+'" y1="'+gy.toFixed(1)+'" x2="'+(W-pad.r)+'" y2="'+gy.toFixed(1)+'"/>');
+    var vy=(y1-i*(y1-y0)/5);
+    svg.push('<text x="'+(pad.l-8)+'" y="'+(gy+3.5).toFixed(1)+'" text-anchor="end">'+vy.toFixed(1)+'</text>');
+  }
+  svg.push('<line x1="'+pad.l+'" y1="'+(H-pad.b)+'" x2="'+(W-pad.r)+'" y2="'+(H-pad.b)+'"/>');
+  svg.push('<line x1="'+pad.l+'" y1="'+pad.t+'" x2="'+pad.l+'" y2="'+(H-pad.b)+'"/>');
+  var ax=axisNames();
+  svg.push('<text x="'+((W+pad.l)/2)+'" y="'+(H-8)+'" text-anchor="middle">'+ax[0]+'</text>');
+  svg.push('<text transform="translate(14,'+((H-pad.b+pad.t)/2)+') rotate(-90)" text-anchor="middle">'+
+    ax[1]+'</text>');
+  svg.push('</g>');
+
+  svg.push('<g id="pts" transform="translate('+MAP.tx+','+MAP.ty+') scale('+MAP.zoom+')">');
+  var drawn=0;
+  Object.keys(perSub).forEach(function(sid){
+    var list=perSub[sid], s=SUBS[sid];
+    if(MAP.mode==='substrate'){
+      var rid0=list[0], co=coordsOf(s);
+      svg.push('<circle class="pt'+(MAP.focus===rid0?' sel':'')+'" data-rid="'+rid0+'" data-sid="'+sid+'" '+
+        'cx="'+sx(co[0]).toFixed(1)+'" cy="'+sy(co[1]).toFixed(1)+'" r="'+
+        (pointRadius(rid0)/MAP.zoom).toFixed(2)+'" fill="'+pointColor(rid0)+'" fill-opacity="0.85" '+
+        'stroke-width="'+(0.8/MAP.zoom).toFixed(2)+'"/>');
+      drawn++;
+    } else {
+      var co2=coordsOf(s);
+      list.forEach(function(rid,idx){
+        var j=jitter(idx,list.length,jscale);
+        svg.push('<circle class="pt'+(MAP.focus===rid?' sel':'')+'" data-rid="'+rid+'" data-sid="'+sid+'" '+
+          'cx="'+sx(co2[0]+j[0]).toFixed(1)+'" cy="'+sy(co2[1]+j[1]).toFixed(1)+'" r="'+
+          (pointRadius(rid)/MAP.zoom).toFixed(2)+'" fill="'+pointColor(rid)+'" fill-opacity="0.8" '+
+          'stroke-width="'+(0.8/MAP.zoom).toFixed(2)+'"/>');
+        drawn++;
+      });
+    }
+  });
+  svg.push('</g></svg>');
+
+  var note=MAP.mode==='substrate'
+    ? drawn+' substrates shown &#183; point area scales with how many reactions use it'
+    : drawn+' reactions shown &#183; reactions sharing a substrate are spread into a small rosette';
+  box.innerHTML=svg.join('')+
+    '<div class="zoomctl"><button class="ghost" data-z="in">+</button>'+
+    '<button class="ghost" data-z="out">&minus;</button>'+
+    '<button class="ghost" data-z="reset">reset view</button></div>'+
+    '<div class="plotnote">'+note+'</div>';
+  wirePlot();
+  renderLegend();
+}
+
+function wirePlot(){
+  var svg=document.getElementById('plot');
+  if(!svg) return;
+  svg.addEventListener('mousemove',function(ev){
+    var t=ev.target;
+    if(t.classList&&t.classList.contains('pt')){
+      showCard(+t.dataset.rid,ev.clientX,ev.clientY,+t.dataset.sid);
+    } else if(!MAP.pinned) hideCard();
+  });
+  svg.addEventListener('mouseleave',function(){if(!MAP.pinned)hideCard();});
+  svg.addEventListener('click',function(ev){
+    var t=ev.target;
+    if(t.classList&&t.classList.contains('pt')){
+      var rid=+t.dataset.rid, sid=+t.dataset.sid;
+      var touch=!window.matchMedia('(hover:hover)').matches;
+      if(MAP.mode==='substrate'||(SUBS[sid].n_rows>1&&touch)){
+        go('/substrate/'+sid);
+      } else {
+        go('/reaction/'+rid);
+      }
+    }
+  });
+  svg.addEventListener('touchstart',function(ev){
+    var t=ev.target;
+    if(t.classList&&t.classList.contains('pt')){
+      var r=t.getBoundingClientRect();
+      MAP.pinned=+t.dataset.rid;
+      showCard(+t.dataset.rid,r.left+r.width/2,r.top,+t.dataset.sid,true);
+    }
+  },{passive:true});
+  // pan and zoom
+  var drag=null;
+  svg.addEventListener('mousedown',function(ev){
+    if(ev.target.classList&&ev.target.classList.contains('pt'))return;
+    drag={x:ev.clientX,y:ev.clientY,tx:MAP.tx,ty:MAP.ty};svg.style.cursor='grabbing';
+  });
+  window.addEventListener('mousemove',function(ev){
+    if(!drag)return;
+    MAP.tx=drag.tx+(ev.clientX-drag.x);MAP.ty=drag.ty+(ev.clientY-drag.y);
+    var g=document.getElementById('pts');
+    if(g) g.setAttribute('transform','translate('+MAP.tx+','+MAP.ty+') scale('+MAP.zoom+')');
+  });
+  window.addEventListener('mouseup',function(){if(drag){drag=null;if(svg)svg.style.cursor='crosshair';}});
+  svg.addEventListener('wheel',function(ev){
+    ev.preventDefault();
+    var f=ev.deltaY<0?1.12:1/1.12;
+    zoomAt(ev.clientX,ev.clientY,f);
+  },{passive:false});
+  var ctl=document.querySelector('.zoomctl');
+  if(ctl) ctl.addEventListener('click',function(ev){
+    var z=ev.target.dataset.z;
+    if(!z)return;
+    var r=svg.getBoundingClientRect();
+    if(z==='in') zoomAt(r.left+r.width/2,r.top+r.height/2,1.3);
+    if(z==='out') zoomAt(r.left+r.width/2,r.top+r.height/2,1/1.3);
+    if(z==='reset'){MAP.zoom=1;MAP.tx=0;MAP.ty=0;drawPlot();}
+  });
+}
+function zoomAt(cx,cy,f){
+  var svg=document.getElementById('plot');
+  if(!svg)return;
+  var r=svg.getBoundingClientRect();
+  var px=(cx-r.left)*(svg.viewBox.baseVal.width/r.width);
+  var py=(cy-r.top)*(svg.viewBox.baseVal.height/r.height);
+  var nz=Math.max(0.6,Math.min(14,MAP.zoom*f));
+  MAP.tx=px-(px-MAP.tx)*(nz/MAP.zoom);
+  MAP.ty=py-(py-MAP.ty)*(nz/MAP.zoom);
+  MAP.zoom=nz;
+  drawPlot();
+}
+
+function showCard(rid,x,y,sid,pinned){
+  var el=document.getElementById('hovercard');
+  var d=DER[rid], p=paperOf(rid), s=subOf(rid);
+  var aggregate = MAP.mode==='substrate' && s && s.n_rows>1;
+  var ee=d.ee===null?'not reported':d.ee+'%';
+  var yld=d.yield===null?'not reported':d.yield+'%';
+  var html='';
+  html+='<div class="struct" id="cardstruct"></div>';
+  if(aggregate){
+    var ees=s.rows.map(function(r){return DER[r].ee;}).filter(function(v){return v!==null;});
+    var ys=s.rows.map(function(r){return DER[r].yield;}).filter(function(v){return v!==null;});
+    html+='<dl>';
+    html+='<dt>substrate</dt><dd>'+esc(s.cpd.join(', ')||'-')+' &#183; '+esc(s.formula||s.jsformula||'')+'</dd>';
+    html+='<dt>reactions</dt><dd>'+s.n_rows+' in '+s.papers.length+' paper(s)</dd>';
+    html+='<dt>yield</dt><dd>'+(ys.length?Math.min.apply(null,ys)+'&ndash;'+Math.max.apply(null,ys)+'%':'not reported')+'</dd>';
+    html+='<dt>ee</dt><dd>'+(ees.length?Math.min.apply(null,ees)+'&ndash;'+Math.max.apply(null,ees)+'%':'not reported')+'</dd>';
+    html+='<dt>cluster</dt><dd>'+clusterLabel(s)+'</dd>';
+    html+='</dl><div class="muted" style="font-size:11.5px;margin-top:7px">click for all '+s.n_rows+' reactions</div>';
+  } else {
+    html+='<dl>';
+    html+='<dt>substrate</dt><dd>'+esc(cell(rid,'Substrate cpd #')||'-')+' &#183; '+esc(s?(s.formula||s.jsformula||''):'')+'</dd>';
+    html+='<dt>yield</dt><dd>'+yld+' <span class="muted">'+esc(cell(rid,'% yield type (product)')||'')+'</span></dd>';
+    html+='<dt>ee</dt><dd>'+ee+(cell(rid,'dr (product)')?' <span class="muted">dr '+esc(cell(rid,'dr (product)'))+'</span>':'')+'</dd>';
+    html+='<dt>temp</dt><dd>'+fmtTemp(rid)+(d.co?' &#183; CO '+esc(d.co):'')+'</dd>';
+    html+='<dt>Rh source</dt><dd>'+esc(cell(rid,'Rh precatalyst')||'not stated')+
+      (cell(rid,'Rh precat. loading (mol %)')?' ('+esc(cell(rid,'Rh precat. loading (mol %)'))+' mol%)':'')+'</dd>';
+    html+='<dt>ligand</dt><dd>'+esc(ligName(rid))+
+      (cell(rid,'Ligand loading (mol %)')?' ('+esc(cell(rid,'Ligand loading (mol %)'))+' mol%)':'')+'</dd>';
+    html+='<dt>solvent</dt><dd>'+esc(cell(rid,'Solvent')||'not stated')+
+      (cell(rid,'Reaction run time')?' &#183; '+esc(cell(rid,'Reaction run time')):'')+'</dd>';
+    html+='<dt>source</dt><dd>'+(p?esc(p.label):'')+' &#183; '+esc(refOf(rid))+'</dd>';
+    html+='</dl>';
+    if(d.dup!==null&&d.dup!==undefined)
+      html+='<div style="margin-top:7px"><span class="pill warn">repeat extraction</span></div>';
+    html+='<div class="muted" style="font-size:11.5px;margin-top:7px">click for the full entry</div>';
+  }
+  el.innerHTML=html;
+  el.style.display='block';
+  el.classList.toggle('pinned',!!pinned);
+  var w=320,h=el.offsetHeight;
+  var left=x+18, top=y-h/2;
+  if(left+w>window.innerWidth-10) left=x-w-18;
+  if(top<8) top=8;
+  if(top+h>window.innerHeight-8) top=window.innerHeight-h-8;
+  el.style.left=left+'px';el.style.top=Math.max(8,top)+'px';
+  depict(document.getElementById('cardstruct'), s?s.smiles:cell(rid,'Substrate SMILES'));
+}
+function hideCard(){
+  var el=document.getElementById('hovercard');
+  if(el){el.style.display='none';el.classList.remove('pinned');}
+  MAP.pinned=null;
+}
+
+function renderLegend(){
+  var el=document.getElementById('legend');
+  if(!el) return;
+  var h='';
+  if(MAP.colorBy==='cluster'){
+    M.space.clusters.forEach(function(c){
+      h+='<span><i style="background:'+clusterColor(c)+'"></i>cluster '+c+
+         ' ('+clusterCount(c)+')</span>';
+    });
+    if(M.space.n_noise)
+      h+='<span><i style="background:'+clusterColor(-1)+'"></i>unclustered ('+
+         M.space.n_noise+')</span>';
+  } else if(MAP.colorBy==='paper'){
+    PAPERS.forEach(function(p,i){
+      if(MAP.papers[i]===false) return;
+      h+='<span><i style="background:'+catColor(i)+'"></i>'+esc(p.label)+'</span>';
+    });
+  } else if(MAP.colorBy==='ligand'){
+    MAP.ligOrder.slice(0,16).forEach(function(n,i){
+      h+='<span><i style="background:'+catColor(i)+'"></i>'+esc(n)+'</span>';
+    });
+    if(MAP.ligOrder.length>16) h+='<span class="muted">+'+(MAP.ligOrder.length-16)+' more, colours repeat</span>';
+  } else if(MAP.colorBy==='solvent'){
+    MAP.solvOrder.slice(0,16).forEach(function(n,i){
+      h+='<span><i style="background:'+catColor(i)+'"></i>'+esc(n)+'</span>';
+    });
+  } else if(MAP.colorBy==='temp'){
+    h+='<span>&minus;20 &#176;C<span class="ramp" style="background:linear-gradient(90deg,'+
+      warmScale(0)+','+warmScale(.5)+','+warmScale(1)+')"></span>130 &#176;C</span>'+
+      '<span><i style="background:#E1E6E8"></i>not parsed</span>';
+  } else {
+    h+='<span>0%<span class="ramp" style="background:linear-gradient(90deg,'+
+      seqScale(0)+','+seqScale(.5)+','+seqScale(1)+')"></span>100% '+MAP.colorBy+'</span>'+
+      '<span><i style="background:#E1E6E8"></i>not reported</span>';
+  }
+  el.innerHTML=h;
+}
+
+function mapControls(){
+  var ligCounts={}, solvCounts={};
+  for(var rid=0;rid<ROWS.length;rid++){
+    var n=ligName(rid); ligCounts[n]=(ligCounts[n]||0)+1;
+    var s=cell(rid,'Solvent')||'not stated'; solvCounts[s]=(solvCounts[s]||0)+1;
+  }
+  MAP.ligOrder=Object.keys(ligCounts).sort(function(a,b){return ligCounts[b]-ligCounts[a];});
+  MAP.solvOrder=Object.keys(solvCounts).sort(function(a,b){return solvCounts[b]-solvCounts[a];});
+
+  var h='<div class="card pad controls">';
+  h+='<div class="grp"><label class="fld" for="embed">Axes</label>'+
+     '<select id="embed">'+
+     '<option value="tsne"'+(MAP.embed==='tsne'?' selected':'')+'>t-SNE of Morgan fingerprints</option>'+
+     '<option value="pca"'+(MAP.embed==='pca'?' selected':'')+'>PC1 vs PC2 of the same fingerprints</option>'+
+     '</select></div>';
+  h+='<div class="grp"><label class="fld" for="mode">Each point is</label>'+
+     '<select id="mode"><option value="reaction">a reaction ('+ROWS.length+')</option>'+
+     '<option value="substrate"'+(MAP.mode==='substrate'?' selected':'')+'>a substrate ('+SUBS.length+')</option></select></div>';
+  h+='<div class="grp"><label class="fld" for="colorby">Colour by</label><select id="colorby">'+
+     ['cluster|HDBSCAN cluster','paper|paper','ligand|ligand','solvent|solvent','ee|% ee','yield|% yield','temp|temperature']
+       .map(function(o){var p=o.split('|');
+         return '<option value="'+p[0]+'"'+(MAP.colorBy===p[0]?' selected':'')+'>'+p[1]+'</option>';}).join('')+
+     '</select>';
+  h+='</div>';
+  h+='<div class="grp"><label class="fld" for="sizeby">Point size</label><select id="sizeby">'+
+     ['yield|% yield','ee|% ee','none|uniform'].map(function(o){var p=o.split('|');
+       return '<option value="'+p[0]+'"'+(MAP.sizeBy===p[0]?' selected':'')+'>'+p[1]+'</option>';}).join('')+'</select></div>';
+  h+='<div class="grp"><label class="fld" for="eemin">Minimum ee: <b id="eeout">'+MAP.eeMin+'%</b></label>'+
+     '<input type="range" id="eemin" min="0" max="99" step="1" value="'+MAP.eeMin+'" style="width:100%">'+
+     '<label class="fld" for="ymin" style="margin-top:6px">Minimum yield: <b id="yout">'+MAP.yieldMin+'%</b></label>'+
+     '<input type="range" id="ymin" min="0" max="99" step="1" value="'+MAP.yieldMin+'" style="width:100%"></div>';
+  h+='<div class="grp"><label class="chk"><input type="checkbox" id="hiderep"'+(MAP.hideRepeats?' checked':'')+
+     '><span>Hide repeat extractions <span class="muted">('+M.n_repeat_rows+' rows)</span></span></label></div>';
+  h+='<div class="grp"><label class="fld">HDBSCAN clusters</label><div class="scrolly" id="clustfilter">';
+  M.space.clusters.concat(M.space.n_noise?[-1]:[]).forEach(function(c){
+    h+='<label class="chk"><input type="checkbox" data-clust="'+c+'"'+(MAP.clusters[c]===false?'':' checked')+
+       '><span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:'+
+       clusterColor(c)+';margin-right:5px"></i>'+(c<0?'unclustered':'cluster '+c)+
+       ' <span class="muted">'+clusterCount(c)+'</span></span></label>';
+  });
+  h+='</div></div>';
+  h+='<div class="grp"><label class="fld">Papers</label><div class="scrolly" id="paperfilter">';
+  PAPERS.forEach(function(p,i){
+    h+='<label class="chk"><input type="checkbox" data-paper="'+i+'"'+(MAP.papers[i]===false?'':' checked')+
+       '><span>'+esc(p.label)+' <span class="muted">'+p.n_rows+'</span></span></label>';
+  });
+  h+='</div></div>';
+  h+='<div class="grp"><label class="fld">Ligands</label><div class="scrolly" id="ligfilter">';
+  MAP.ligOrder.forEach(function(n){
+    h+='<label class="chk"><input type="checkbox" data-lig="'+esc(n)+'"'+(MAP.ligands[n]===false?'':' checked')+
+       '><span>'+esc(n)+' <span class="muted">'+ligCounts[n]+'</span></span></label>';
+  });
+  h+='</div></div>';
+  h+='<div class="grp"><label class="fld">Solvents</label><div class="scrolly" id="solvfilter">';
+  MAP.solvOrder.forEach(function(n){
+    h+='<label class="chk"><input type="checkbox" data-solv="'+esc(n)+'"'+(MAP.solvents[n]===false?'':' checked')+
+       '><span>'+esc(n)+' <span class="muted">'+solvCounts[n]+'</span></span></label>';
+  });
+  h+='</div></div>';
+  h+='<div class="grp"><button class="ghost" id="resetfilters">Clear all filters</button></div>';
+  h+='</div>';
+  return h;
+}
+
+function wireControls(){
+  function on(id,evt,fn){var el=document.getElementById(id);if(el)el.addEventListener(evt,fn);}
+  on('mode','change',function(e){MAP.mode=e.target.value;drawPlot();});
+  on('colorby','change',function(e){MAP.colorBy=e.target.value;drawPlot();});
+  on('embed','change',function(e){
+    MAP.embed=e.target.value;MAP.zoom=1;MAP.tx=0;MAP.ty=0;drawPlot();
+  });
+  on('sizeby','change',function(e){MAP.sizeBy=e.target.value;drawPlot();});
+  on('eemin','input',function(e){MAP.eeMin=+e.target.value;
+    document.getElementById('eeout').textContent=MAP.eeMin+'%';drawPlot();});
+  on('ymin','input',function(e){MAP.yieldMin=+e.target.value;
+    document.getElementById('yout').textContent=MAP.yieldMin+'%';drawPlot();});
+  on('hiderep','change',function(e){MAP.hideRepeats=e.target.checked;drawPlot();});
+  ['clustfilter','paperfilter','ligfilter','solvfilter'].forEach(function(id){
+    on(id,'change',function(e){
+      var t=e.target;
+      if(t.dataset.clust!==undefined) MAP.clusters[+t.dataset.clust]=t.checked;
+      if(t.dataset.paper!==undefined) MAP.papers[+t.dataset.paper]=t.checked;
+      if(t.dataset.lig!==undefined) MAP.ligands[t.dataset.lig]=t.checked;
+      if(t.dataset.solv!==undefined) MAP.solvents[t.dataset.solv]=t.checked;
+      drawPlot();
+    });
+  });
+  on('resetfilters','click',function(){
+    MAP.papers={};MAP.ligands={};MAP.solvents={};MAP.clusters={};
+    MAP.eeMin=0;MAP.yieldMin=0;MAP.hideRepeats=false;
+    renderMap(MAP.focus);
+  });
+}
+
+function renderMap(focusRid){
+  MAP.focus=(focusRid===undefined?null:focusRid);
+  var v=document.getElementById('view');
+  var h='';
+  h+='<div class="stats">'+
+     '<div><b>'+M.n_rows+'</b><span>reactions</span></div>'+
+     '<div><b>'+M.n_substrates+'</b><span>unique substrates</span></div>'+
+     '<div><b>'+M.n_ligands+'</b><span>unique ligands</span></div>'+
+     '<div><b>'+M.n_papers+'</b><span>papers</span></div>'+
+     '</div>';
+  if(!M.space.exact) h+='<div class="notice">Map coordinates are provisional: this file was '+
+     'built without RDKit, so the fingerprints are a stand-in rather than RDKit Morgan bits. '+
+     'Clusters and neighbourhoods are indicative, not the notebook\'s. Rebuild with RDKit '+
+     'installed, or pass the notebook\'s <span class="mono">cluster_MM.DD.YYYY.csv</span>, to '+
+     'get the real map. Everything else on this site is unaffected.</div>';
+  h+='<div class="maplayout">'+mapControls()+
+     '<div><div id="plotbox"></div><div class="legend" id="legend"></div>'+
+     '<p class="muted" style="font-size:12.5px;margin-top:12px;max-width:74ch">'+
+     'Substrates are placed by the chemical-space pipeline from '+
+     '<span class="mono">chemical_space_investigation.ipynb</span>: Morgan fingerprints '+
+     '(radius '+M.space.morgan_params.radius+', '+M.space.morgan_params.fpSize+' bits) '+
+     '&#8594; PCA('+M.space.pca_components+') &#8594; t-SNE &#8594; HDBSCAN. '+
+     M.space.clusters.length+' clusters, '+M.space.n_noise+' unclustered. '+
+     'Hover a point for the reaction; click to open its entry. '+
+     '<a href="'+href('/about')+'">How this was computed</a>.</p></div></div>';
+  v.innerHTML=h;
+  wireControls();
+  drawPlot();
+  if(focusRid!==null&&focusRid!==undefined){
+    var c=document.querySelector('.pt.sel');
+    if(c){
+      var r=c.getBoundingClientRect();
+      showCard(focusRid,r.left+r.width/2,r.top+r.height/2,DER[focusRid].sub,true);
+      MAP.pinned=focusRid;
+      window.scrollTo({top:0});
+    }
+  }
+}
+
+/* ===================================================== REACTION DETAIL === */
+function renderReaction(rid){
+  rid=+rid;
+  if(!(rid>=0&&rid<ROWS.length)){document.getElementById('view').innerHTML='<p>No reaction '+esc(rid)+'.</p>';return;}
+  var d=DER[rid], p=paperOf(rid), s=subOf(rid), l=ligOf(rid);
+  var v=document.getElementById('view');
+  var h='';
+  h+='<div class="crumb"><a href="'+href('/?focus='+rid)+'">&#8592; the map</a> &#183; '+
+     (p?'<a href="'+href('/paper/'+d.paper)+'">'+esc(p.citation)+'</a>':'')+' &#183; '+esc(refOf(rid))+'</div>';
+  h+='<h2>Reaction '+rid+' &#183; '+esc(cell(rid,'Substrate cpd #')||'substrate')+' &#8594; '+
+     esc(cell(rid,'Product cpd #')||'product')+'</h2>';
+  h+='<p class="muted" style="margin:.2rem 0 1rem">'+
+     (d.yield===null?'yield not reported':'yield '+d.yield+'%')+' &#183; '+
+     (d.ee===null?'ee not reported':d.ee+'% ee')+' &#183; '+fmtTemp(rid)+' &#183; '+
+     esc(cell(rid,'Solvent')||'solvent not stated')+
+     (d.dup!==null&&d.dup!==undefined?' &#183; <span class="pill warn">repeat extraction of this entry</span>':'')+'</p>';
+
+  h+='<div class="detail"><div>';
+  ['Substrate SMILES','Product SMILES','Byproduct SMILES','Ligand SMILES'].forEach(function(f,i){
+    var smi=(f==='Substrate SMILES'&&s)?s.smiles:cell(rid,f);
+    if(!smi) return;
+    var caps=['substrate '+(cell(rid,'Substrate cpd #')||''),
+              'product '+(cell(rid,'Product cpd #')||''),
+              'byproduct '+(cell(rid,'Byproduct cpd #')||''),
+              'ligand '+(ligName(rid)||'')];
+    h+='<div class="structbox" data-smiles="'+esc(smi)+'"></div>'+
+       '<div class="structcap">'+esc(caps[i])+'<br><span class="mono">'+esc(smi)+'</span></div>';
+  });
+  if(s) h+='<p class="muted" style="font-size:12.5px">Substrate '+esc(s.formula||s.jsformula||'')+
+     ' &#183; used in <a href="'+href('/substrate/'+d.sub)+'">'+s.n_rows+' reaction(s)</a>'+
+     ' &#183; '+clusterLabel(s)+'</p>';
+  h+='</div><div>';
+
+  h+='<h3>Conditions read out of the Notes column</h3>';
+  h+='<dl class="kv">';
+  h+=kv('Temperature', d.temp===null?'':d.temp+' \u00B0C', true);
+  h+=kv('CO pressure', d.co||'', true);
+  h+=kv('Atmosphere', d.atm||'', true);
+  h+=kv('Additives', d.add||'', true);
+  h+='</dl>';
+  h+='<p class="muted" style="font-size:12px">These four are parsed from free text, not stored as columns. '+
+     'The full note is reproduced below.</p>';
+
+  h+='<h3 style="margin-top:18px">Every field in the database</h3><dl class="kv">';
+  COLS.forEach(function(cn){
+    var val=ROWS[rid][C[cn]];
+    if(cn==='DOI'&&val) val='<a href="https://doi.org/'+esc(val)+'" target="_blank" rel="noopener">'+esc(val)+'</a>';
+    else if(/SMILES/.test(cn)&&val) val='<span class="mono">'+esc(val)+'</span>';
+    else val=esc(val);
+    h+=kv(cn,val,true);
+  });
+  h+='</dl>';
+  var src=d.src&&d.src.length?d.src.join(', '):'not traced';
+  h+='<p class="muted" style="font-size:12px;margin-top:10px">Source spreadsheet: <span class="mono">'+esc(src)+'</span></p>';
+  if(d.dup!==null&&d.dup!==undefined){
+    var mates=[];
+    for(var i=0;i<DER.length;i++) if(i!==rid&&DER[i].dup===d.dup) mates.push(i);
+    h+='<div class="notice">This entry was extracted more than once, from different spreadsheets. '+
+       'Also see '+mates.map(function(m){return '<a href="'+href('/reaction/'+m)+'">reaction '+m+'</a>';}).join(', ')+
+       '. Numbers may differ slightly between extractions &#8212; check both against the paper before using either.</div>';
+  }
+  h+='</div></div>';
+  v.innerHTML=h;
+  drawAllStructs();
+}
+function kv(k,val,allowEmpty){
+  var empty=!val;
+  if(empty&&!allowEmpty) return '';
+  return '<dt'+(empty?' class="empty"':'')+'>'+esc(k)+'</dt><dd'+(empty?' class="empty"':'')+'>'+
+    (empty?'&#8212;':val)+'</dd>';
+}
+function drawAllStructs(){
+  Array.prototype.forEach.call(document.querySelectorAll('[data-smiles]'),function(el){
+    depict(el, el.dataset.smiles);
+  });
+}
+
+/* ==================================================== SUBSTRATE DETAIL === */
+function renderSubstrate(sid){
+  sid=+sid;
+  var s=SUBS[sid];
+  var v=document.getElementById('view');
+  if(!s){v.innerHTML='<p>No substrate '+esc(sid)+'.</p>';return;}
+  var h='<div class="crumb"><a href="'+href('/')+'">&#8592; the map</a></div>';
+  h+='<h2>Substrate '+(s.cpd.join(' / ')||sid)+'</h2>';
+  h+='<p class="muted" style="margin:.2rem 0 1rem">'+esc(s.formula||s.jsformula||'')+' &#183; '+
+     s.n_rows+' reaction(s) &#183; '+s.papers.map(function(pi){
+       return '<a href="'+href('/paper/'+pi)+'">'+esc(PAPERS[pi].label)+'</a>';}).join(', ')+'</p>';
+  h+='<div class="detail"><div><div class="structbox" data-smiles="'+esc(s.smiles)+'"></div>'+
+     '<div class="structcap"><span class="mono">'+esc(s.smiles)+'</span></div>';
+  h+='<h3>Descriptors</h3><dl class="kv" style="grid-template-columns:150px 1fr">';
+  Object.keys(s.desc).forEach(function(k){h+=kv(k.replace(/_/g,' '),String(s.desc[k]),true);});
+  h+='</dl>';
+  h+='<h3>Position on the map</h3><dl class="kv" style="grid-template-columns:150px 1fr">'+
+     kv('cluster',clusterLabel(s),true)+
+     kv('t-SNE 1, 2',s.tsne?s.tsne[0].toFixed(2)+', '+s.tsne[1].toFixed(2):'',true)+
+     kv('PC1, PC2',s.pc?s.pc[0].toFixed(2)+', '+s.pc[1].toFixed(2):'',true)+
+     '</dl>';
+  h+='</div><div>'+reactionTable(s.rows,true)+'</div></div>';
+  v.innerHTML=h;
+  drawAllStructs();
+}
+
+/* ======================================================== PAPER DETAIL === */
+function renderPaper(pi){
+  pi=+pi;
+  var p=PAPERS[pi];
+  var v=document.getElementById('view');
+  if(!p){v.innerHTML='<p>No paper '+esc(pi)+'.</p>';return;}
+  var rows=[];
+  for(var rid=0;rid<DER.length;rid++) if(DER[rid].paper===pi) rows.push(rid);
+  var h='<div class="crumb"><a href="'+href('/')+'">&#8592; the map</a></div>';
+  h+='<h2>'+esc(p.citation)+'</h2>';
+  h+='<p class="muted" style="margin:.2rem 0 1rem"><a href="https://doi.org/'+esc(p.doi)+
+     '" target="_blank" rel="noopener">'+esc(p.doi)+'</a> &#183; '+rows.length+' reactions &#183; extracted in '+
+     p.sheets.map(function(s){return '<span class="mono">'+esc(s)+'</span>';}).join(', ')+'</p>';
+  if(p.sheets.length>1) h+='<div class="notice">This paper was parsed into '+p.sheets.length+
+     ' spreadsheets, so some entries appear twice. Rows that look like repeats are flagged.</div>';
+  h+=reactionTable(rows,false);
+  v.innerHTML=h;
+}
+
+/* ===================================================== REACTION TABLES === */
+function reactionTable(rids,compact){
+  var h='<div class="tablewrap"><table><thead><tr>'+
+    '<th>#</th><th>paper</th><th>table / entry</th>'+(compact?'':'<th>substrate</th>')+
+    '<th>Rh source</th><th>ligand</th><th>solvent</th><th>T</th><th>yield</th><th>ee</th><th></th>'+
+    '</tr></thead><tbody>';
+  rids.forEach(function(rid){
+    var d=DER[rid],p=paperOf(rid);
+    h+='<tr>'+
+      '<td class="num">'+rid+'</td>'+
+      '<td>'+(p?esc(p.label):'')+'</td>'+
+      '<td>'+esc(refOf(rid))+(d.dup!==null&&d.dup!==undefined?' <span class="pill warn">repeat</span>':'')+'</td>'+
+      (compact?'':'<td>'+esc(cell(rid,'Substrate cpd #'))+'</td>')+
+      '<td>'+esc(cell(rid,'Rh precatalyst'))+'</td>'+
+      '<td>'+esc(ligName(rid))+'</td>'+
+      '<td>'+esc(cell(rid,'Solvent'))+'</td>'+
+      '<td class="num">'+(d.temp===null?'&#8212;':d.temp)+'</td>'+
+      '<td class="num">'+(d.yield===null?'&#8212;':d.yield)+'</td>'+
+      '<td class="num">'+(d.ee===null?'&#8212;':d.ee)+'</td>'+
+      '<td><a href="'+href('/reaction/'+rid)+'">open</a></td></tr>';
+  });
+  return h+'</tbody></table></div>';
+}
+
+var TABLE={q:'',paper:'-1',sort:'rid',dir:1};
+function renderTable(){
+  var v=document.getElementById('view');
+  var h='<h2>All reactions</h2>'+
+    '<div class="row" style="margin:10px 0 14px;flex-wrap:wrap">'+
+    '<div class="grow" style="max-width:420px"><label class="fld" for="tq">Search compound numbers, catalysts, notes, SMILES</label>'+
+    '<input type="search" id="tq" value="'+esc(TABLE.q)+'" placeholder="e.g. 4a, SEGPHOS, acetone, TMS"></div>'+
+    '<div style="min-width:220px"><label class="fld" for="tp">Paper</label><select id="tp"><option value="-1">all papers</option>'+
+    PAPERS.map(function(p,i){return '<option value="'+i+'"'+(TABLE.paper==String(i)?' selected':'')+'>'+
+      esc(p.label)+' ('+p.n_rows+')</option>';}).join('')+'</select></div>'+
+    '<div style="align-self:flex-end"><button class="ghost" id="csv">Download filtered rows as CSV</button></div>'+
+    '</div><div id="tres"></div>';
+  v.innerHTML=h;
+  var run=function(){
+    var q=TABLE.q.toLowerCase().trim();
+    var rows=[];
+    for(var rid=0;rid<ROWS.length;rid++){
+      if(TABLE.paper!=='-1'&&DER[rid].paper!==+TABLE.paper) continue;
+      if(q){
+        var hay=ROWS[rid].join(' \u0001 ').toLowerCase();
+        if(hay.indexOf(q)<0) continue;
+      }
+      rows.push(rid);
+    }
+    document.getElementById('tres').innerHTML='<p class="muted" style="font-size:12.5px">'+
+      rows.length+' of '+ROWS.length+' rows</p>'+reactionTable(rows,false);
+    TABLE.rows=rows;
+  };
+  document.getElementById('tq').addEventListener('input',function(e){TABLE.q=e.target.value;run();});
+  document.getElementById('tp').addEventListener('change',function(e){TABLE.paper=e.target.value;run();});
+  document.getElementById('csv').addEventListener('click',function(){downloadCSV(TABLE.rows||[]);});
+  run();
+}
+function downloadCSV(rids){
+  var esc2=function(v){v=String(v===null||v===undefined?'':v);
+    return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  var head=['row_id'].concat(COLS,['parsed_temp_C','parsed_CO','parsed_atmosphere',
+    'parsed_additives','source_sheet','repeat_group']);
+  var lines=[head.map(esc2).join(',')];
+  rids.forEach(function(rid){
+    var d=DER[rid];
+    lines.push([rid].concat(ROWS[rid],[d.temp,d.co,d.atm,d.add,
+      (d.src||[]).join(' | '),d.dup]).map(esc2).join(','));
+  });
+  var blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='apkr_reactions_filtered.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+/* ====================================================== SIMILARITY SEARCH */
+var SEARCH={q:'',res:null,err:''};
+function renderSearch(){
+  var v=document.getElementById('view');
+  var h='<h2>Find similar substrates</h2>'+
+    '<p class="muted" style="max-width:74ch;margin:.3rem 0 1rem">Paste a SMILES string. '+
+    'Every substrate in the database is ranked by Tanimoto similarity over circular fingerprints '+
+    '(radius 2), computed in your browser. Stereochemistry is ignored when comparing.</p>'+
+    '<div class="card pad" style="margin-bottom:16px">'+
+    '<label class="fld" for="sq">Substrate SMILES</label>'+
+    '<textarea id="sq" class="mono" rows="2" placeholder="C=CCOCC#Cc1ccccc1">'+esc(SEARCH.q)+'</textarea>'+
+    '<div class="row" style="margin-top:9px;align-items:center">'+
+    '<button id="sgo">Search</button>'+
+    '<button class="ghost" id="sex">Use an example</button>'+
+    '<span class="muted" style="font-size:12.5px" id="serr"></span></div></div>'+
+    '<div id="sres"></div>';
+  v.innerHTML=h;
+  document.getElementById('sgo').addEventListener('click',runSearch);
+  document.getElementById('sex').addEventListener('click',function(){
+    document.getElementById('sq').value='C=CCOCC#Cc1ccc(OC)cc1';runSearch();
+  });
+  document.getElementById('sq').addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)) runSearch();
+  });
+  if(SEARCH.res) showSearchResults();
+}
+function runSearch(){
+  var q=document.getElementById('sq').value.trim();
+  SEARCH.q=q;SEARCH.err='';
+  var errEl=document.getElementById('serr');
+  if(!q){errEl.textContent='Type or paste a SMILES string first.';return;}
+  var d;
+  try{d=CHEM.describe(q);}
+  catch(e){
+    errEl.textContent='Could not read that SMILES: '+e.message;
+    SEARCH.res=null;document.getElementById('sres').innerHTML='';return;
+  }
+  errEl.textContent='';
+  var scored=[];
+  SUBS.forEach(function(s,i){
+    if(!SUBFP[i]) return;
+    scored.push({sid:i,sim:CHEM.tanimoto(d.fp,SUBFP[i])});
+  });
+  scored.sort(function(a,b){return b.sim-a.sim;});
+  SEARCH.res={query:d,hits:scored.slice(0,25)};
+  showSearchResults();
+}
+function showSearchResults(){
+  var r=SEARCH.res,el=document.getElementById('sres');
+  if(!r){el.innerHTML='';return;}
+  var exact=r.hits.filter(function(h){return h.sim>0.999;});
+  var h='';
+  if(exact.length){
+    h+='<div class="notice info">This substrate is already in the database &#8212; '+
+      exact.map(function(e){return '<a href="'+href('/substrate/'+e.sid)+'">'+
+        esc(SUBS[e.sid].cpd.join('/')||'substrate '+e.sid)+'</a>';}).join(', ')+
+      '. Fingerprints ignore stereochemistry, so check the drawing if you care about configuration.</div>';
+  } else {
+    h+='<div class="notice">No identical substrate in the database. The closest are below.</div>';
+  }
+  h+='<p class="muted" style="font-size:12.5px">Query '+esc(r.query.formula)+
+     ' &#183; MW '+r.query.mw.toFixed(1)+' &#183; '+r.query.heavy+' heavy atoms</p>';
+  h+='<div class="hitlist">';
+  r.hits.forEach(function(hit){
+    var s=SUBS[hit.sid];
+    h+='<div class="hit"><div class="struct" data-smiles="'+esc(s.smiles)+'"></div><div>'+
+      '<div><a href="'+href('/substrate/'+hit.sid)+'"><b>'+esc(s.cpd.join(' / ')||('substrate '+hit.sid))+
+      '</b></a> <span class="muted">'+esc(s.formula||s.jsformula||'')+'</span></div>'+
+      '<div class="simbar"><i style="width:'+(hit.sim*100).toFixed(0)+'%"></i></div>'+
+      '<div class="muted" style="font-size:12.5px">Tanimoto '+hit.sim.toFixed(3)+' &#183; '+
+      s.n_rows+' reaction(s) &#183; best ee '+(s.best_ee===null?'n/r':s.best_ee+'%')+
+      ' &#183; best yield '+(s.best_yield===null?'n/r':s.best_yield+'%')+'</div>'+
+      '<div class="muted" style="font-size:12px">'+s.papers.map(function(pi){
+        return '<a href="'+href('/paper/'+pi)+'">'+esc(PAPERS[pi].label)+'</a>';}).join(', ')+'</div>'+
+      '<div class="mono" style="margin-top:4px">'+esc(s.smiles)+'</div>'+
+      '</div></div>';
+  });
+  h+='</div>';
+  el.innerHTML=h;
+  drawAllStructs();
+}
+
+/* ============================================================== LIGANDS = */
+var LIG={q:'',res:null};
+function renderLigands(){
+  var v=document.getElementById('view');
+  var h='<h2>Ligand check</h2>'+
+    '<p class="muted" style="max-width:74ch;margin:.3rem 0 1rem">Paste a ligand SMILES to see whether it is '+
+    'already in the database. Comparison is by circular fingerprint and molecular formula, so a match '+
+    'means the same connectivity &#8212; P-stereochemistry and axial chirality are <em>not</em> compared.</p>'+
+    '<div class="card pad" style="margin-bottom:16px">'+
+    '<label class="fld" for="lq">Ligand SMILES</label>'+
+    '<textarea id="lq" class="mono" rows="2" placeholder="P(c1ccccc1)(c1ccccc1)c1ccc2ccccc2c1-c1c(P(c2ccccc2)c2ccccc2)ccc2ccccc21">'+esc(LIG.q)+'</textarea>'+
+    '<div class="row" style="margin-top:9px;align-items:center">'+
+    '<button id="lgo">Check the database</button>'+
+    '<span class="muted" style="font-size:12.5px" id="lerr"></span></div></div>'+
+    '<div id="lres"></div>'+
+    '<h3 style="margin-top:26px">Every ligand in the database ('+LIGS.length+')</h3>'+
+    '<div id="ligtable"></div>';
+  v.innerHTML=h;
+  document.getElementById('lgo').addEventListener('click',runLigand);
+  document.getElementById('lq').addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)) runLigand();
+  });
+  var t='<div class="tablewrap"><table><thead><tr><th>ligand</th><th>formula</th>'+
+    '<th>reactions</th><th>papers</th><th>loading (mol%)</th><th>SMILES</th></tr></thead><tbody>';
+  LIGS.slice().sort(function(a,b){return b.n_rows-a.n_rows;}).forEach(function(l){
+    var loads=uniq(l.rows.map(function(r){return cell(r,'Ligand loading (mol %)');})
+      .filter(Boolean)).slice(0,6).join(', ');
+    t+='<tr><td>'+esc(l.names.join(' / ')||'unnamed')+'</td>'+
+      '<td class="num">'+esc(l.formula||l.jsformula||'')+'</td>'+
+      '<td class="num">'+l.n_rows+'</td>'+
+      '<td>'+l.papers.map(function(pi){return '<a href="'+href('/paper/'+pi)+'">'+
+        esc(PAPERS[pi].label)+'</a>';}).join(', ')+'</td>'+
+      '<td class="num">'+esc(loads)+'</td>'+
+      '<td class="mono">'+esc(l.smiles)+'</td></tr>';
+  });
+  document.getElementById('ligtable').innerHTML=t+'</tbody></table></div>';
+  if(LIG.res) showLigandResult();
+}
+function runLigand(){
+  var q=document.getElementById('lq').value.trim();
+  LIG.q=q;
+  var err=document.getElementById('lerr');
+  if(!q){err.textContent='Paste a ligand SMILES first.';return;}
+  var d;
+  try{d=CHEM.describe(q);}
+  catch(e){err.textContent='Could not read that SMILES: '+e.message;
+    LIG.res=null;document.getElementById('lres').innerHTML='';return;}
+  err.textContent='';
+  var scored=[];
+  LIGS.forEach(function(l,i){
+    if(!LIGFP[i]) return;
+    scored.push({lid:i,sim:CHEM.tanimoto(d.fp,LIGFP[i]),
+      sameFormula:(l.formula||l.jsformula)===d.formula});
+  });
+  scored.sort(function(a,b){return b.sim-a.sim;});
+  LIG.res={query:d,hits:scored.slice(0,8)};
+  showLigandResult();
+}
+function showLigandResult(){
+  var r=LIG.res,el=document.getElementById('lres');
+  if(!r){el.innerHTML='';return;}
+  var best=r.hits[0];
+  var identical=r.hits.filter(function(h){return h.sim>0.999&&h.sameFormula;});
+  var h='';
+  if(identical.length){
+    var l=LIGS[identical[0].lid];
+    h+='<div class="notice info"><b>Already in the database.</b> '+esc(l.names.join(' / ')||'unnamed ligand')+
+      ' &#183; '+l.n_rows+' reaction(s) in '+l.papers.map(function(pi){
+        return '<a href="'+href('/paper/'+pi)+'">'+esc(PAPERS[pi].label)+'</a>';}).join(', ')+
+      '.<br>Stereochemistry is not compared, so a (R)/(S) or P-stereogenic variant would also match here.</div>';
+  } else if(best&&best.sim>0.8){
+    h+='<div class="notice"><b>Not in the database</b>, but something close is: '+
+      esc(LIGS[best.lid].names.join(' / ')||'unnamed')+' at Tanimoto '+best.sim.toFixed(3)+
+      ' &#8212; often a different aryl substitution pattern on the same backbone.</div>';
+  } else {
+    h+='<div class="notice"><b>Not in the database.</b> Nothing closer than Tanimoto '+
+      (best?best.sim.toFixed(3):'0')+'.</div>';
+  }
+  h+='<p class="muted" style="font-size:12.5px">Query '+esc(r.query.formula)+' &#183; MW '+
+     r.query.mw.toFixed(1)+'</p>';
+  h+='<div class="row" style="flex-wrap:wrap;gap:12px"><div class="structbox" style="width:280px" data-smiles="'+
+     esc(LIG.q)+'"></div><div class="grow">';
+  h+='<table><thead><tr><th>closest ligands</th><th>Tanimoto</th><th>same formula</th>'+
+     '<th>reactions</th></tr></thead><tbody>';
+  r.hits.forEach(function(hit){
+    var l=LIGS[hit.lid];
+    h+='<tr><td>'+esc(l.names.join(' / ')||'unnamed')+'</td><td class="num">'+hit.sim.toFixed(3)+
+      '</td><td>'+(hit.sameFormula?'yes':'no')+'</td><td class="num">'+l.n_rows+'</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  el.innerHTML=h;
+  drawAllStructs();
+}
+
+/* ============================================================== ABOUT === */
+function renderAbout(){
+  var v=document.getElementById('view');
+  var sp=M.space;
+  var h='<h2>How this site is built</h2>';
+  h+='<div style="max-width:78ch">';
+  h+='<p>Everything here comes from <span class="mono">'+esc(M.source_db)+'</span>, built '+
+     esc(M.generated)+'. The data is embedded in this file, so it works offline and can be '+
+     'emailed as one attachment. Structure drawings are the exception: they use the '+
+     'smiles-drawer library, fetched from a CDN the first time you open the page. With no '+
+     'connection you get formulas and SMILES text instead.</p>';
+  h+='<h3>The chemical-space map</h3>';
+  h+='<p>The map is the pipeline from <span class="mono">chemical_space_investigation.ipynb</span>, '+
+     'run over the '+sp.n_placed+' unique canonical substrate SMILES:</p>';
+  h+='<ol><li>Morgan fingerprint, radius '+sp.morgan_params.radius+', '+
+     sp.morgan_params.fpSize+' bits</li>'+
+     '<li>PCA to '+sp.pca_components+' components, random_state '+M.space.tsne_params.random_state+
+     (sp.pca_explained!==null?' (keeping '+Math.round(sp.pca_explained*100)+'% of the variance)':'')+'</li>'+
+     '<li>t-SNE on those components: perplexity '+sp.tsne_params.perplexity+
+     ', max_iter '+sp.tsne_params.max_iter+', learning_rate '+sp.tsne_params.learning_rate+
+     ', early_exaggeration '+sp.tsne_params.early_exaggeration+', init '+sp.tsne_params.init+'</li>'+
+     '<li>coordinates centred on their mean</li>'+
+     '<li>HDBSCAN on the 2D coordinates: min_cluster_size '+sp.hdbscan_params.min_cluster_size+
+     ', min_samples '+sp.hdbscan_params.min_samples+' &#8594; '+sp.clusters.length+
+     ' clusters and '+sp.n_noise+' unclustered points</li></ol>';
+  h+='<p>Cluster numbers are HDBSCAN\'s own labels, so they match the notebook\'s '+
+     '<span class="mono">cluster_*.csv</span> and the per-cluster grid images. Points HDBSCAN '+
+     'called noise (label &minus;1) are drawn grey and listed as unclustered rather than hidden. '+
+     'The PCA axis option plots PC1 against PC2 of the same fingerprint matrix, which is worth '+
+     'a look because t-SNE distances between clusters carry no meaning while PCA distances do.</p>';
+  h+='<p><b>Provenance of this build:</b> '+esc(sp.how)+
+     (sp.source==='csv'?'. Coordinates and cluster labels were taken verbatim from that file.'
+       :'. Computed when this page was built.')+
+     (sp.exact?'' : ' <b>The fingerprints are a stand-in, not RDKit Morgan bits</b>, because '+
+      'RDKit was not available where this file was built. PCA, t-SNE and HDBSCAN ran with the '+
+      'notebook\'s own hyperparameters, so the map behaves like the notebook\'s, but the '+
+      'coordinates and cluster numbering are not identical to it. Rebuild with RDKit, or pass '+
+      '--coords with the notebook\'s cluster CSV, to replace them.')+'</p>';
+  if(sp.n_unplaced) h+='<p>'+sp.n_unplaced+' substrate(s) had no coordinates and are missing from '+
+     'the map, though their reactions are still in the tables.</p>';
+  h+='<h3>Searching by structure</h3>';
+  h+='<p>Substrate similarity and the ligand check do not use the fingerprints above. They use a '+
+     'small SMILES reader built into this page, so the structure you type and the ones already '+
+     'stored are treated identically, with no server and no library to load. It reads the molecule '+
+     'as a graph and hashes circular atom environments to radius 2, which is ECFP-like but not '+
+     'RDKit-identical: use it to ask "is this skeleton here already", not to reproduce a number '+
+     'from the notebook.</p>';
+  h+='<h3>Things to know before you trust a number</h3><ul>';
+  h+='<li>Temperature, CO pressure, atmosphere and additives have no column in the spreadsheet template. '+
+     'They are parsed out of the Notes text, which succeeded for '+
+     DER.filter(function(d){return d.temp!==null;}).length+' of '+DER.length+
+     ' rows for temperature. Treat parsed values as a convenience, and read the note itself on the entry page.</li>';
+  h+='<li>'+M.n_repeat_rows+' rows look like the same published entry extracted twice, from two different '+
+     'spreadsheets for the same paper. They are flagged, and the map has a switch to hide them. '+
+     'Nothing has been deleted.</li>';
+  h+='<li>Similarity and ligand matching ignore stereochemistry. For a database about asymmetric catalysis '+
+     'that matters: a match tells you the skeleton is present, not that the enantiomer is.</li>';
+  h+='<li>Yields and ee values are read as the first number in the cell, so entries like &#8220;major product '+
+     '(not quantified)&#8221; count as not reported rather than zero.</li>';
+  if(CHEMFAIL.length) h+='<li>'+CHEMFAIL.length+' SMILES could not be parsed by the in-page reader and are '+
+     'excluded from similarity search: <span class="mono">'+CHEMFAIL.map(esc).join(', ')+'</span></li>';
+  h+='</ul>';
+  h+='<h3>Papers</h3><div class="tablewrap" style="max-height:none"><table><thead><tr><th>paper</th><th>DOI</th>'+
+     '<th>reactions</th><th>spreadsheets</th></tr></thead><tbody>';
+  PAPERS.forEach(function(p,i){
+    h+='<tr><td><a href="'+href('/paper/'+i)+'">'+esc(p.citation)+'</a></td>'+
+      '<td class="mono"><a href="https://doi.org/'+esc(p.doi)+'" target="_blank" rel="noopener">'+esc(p.doi)+'</a></td>'+
+      '<td class="num">'+p.n_rows+'</td><td class="mono" style="font-size:11px">'+
+      p.sheets.map(esc).join('<br>')+'</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  v.innerHTML=h;
+}
+
+/* =============================================================== ROUTER = */
+var TABS=[['/','Map'],['/reactions','All reactions'],['/search','Similar substrates'],
+          ['/ligands','Ligands'],['/about','About the data']];
+function renderTabs(active){
+  document.getElementById('tabs').innerHTML=TABS.map(function(t){
+    var on=(t[0]==='/'&&(active===''||active==='/'))||(t[0]!=='/'&&active.indexOf(t[0])===0);
+    return '<a href="'+href(t[0])+'" class="'+(on?'on':'')+'">'+t[1]+'</a>';
+  }).join('');
+}
+function route(){
+  hideCard();
+  var hash=location.hash.replace(/^#/,'')||'/';
+  var qi=hash.indexOf('?');
+  var query={};
+  if(qi>=0){
+    hash.slice(qi+1).split('&').forEach(function(kv){
+      var p=kv.split('=');query[p[0]]=decodeURIComponent(p[1]||'');
+    });
+    hash=hash.slice(0,qi);
+  }
+  renderTabs(hash);
+  var parts=hash.split('/').filter(Boolean);
+  window.scrollTo({top:0});
+  if(parts.length===0) return renderMap(query.focus!==undefined?+query.focus:null);
+  switch(parts[0]){
+    case 'reaction': return renderReaction(parts[1]);
+    case 'substrate': return renderSubstrate(parts[1]);
+    case 'paper': return renderPaper(parts[1]);
+    case 'reactions': return renderTable();
+    case 'search': return renderSearch();
+    case 'ligands': return renderLigands();
+    case 'about': return renderAbout();
+    default: return renderMap(null);
+  }
+}
+window.addEventListener('hashchange',route);
+window.addEventListener('resize',function(){
+  if(document.getElementById('plotbox')) drawPlot();
+});
+
+document.getElementById('subtitle').textContent=
+  M.n_rows+' asymmetric Pauson\u2013Khand reactions from '+M.n_papers+
+  ' papers \u00B7 built '+M.generated+' from '+M.source_db;
+document.getElementById('foot').innerHTML=
+  'Built from <span class="mono">'+esc(M.source_db)+'</span> on '+esc(M.generated)+
+  '. Substrate descriptors: '+esc(M.featurizer)+'. <a href="'+href('/about')+'">What is in the data and what to check</a>.';
+buildFingerprints();
+loadDepiction();
+route();
+</script>
+</body>
+</html>
